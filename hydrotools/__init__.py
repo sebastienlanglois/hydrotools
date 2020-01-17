@@ -116,6 +116,10 @@ def clip_polygon_to_dataframe(dataset,
                         df_out = df_idx.resample(resample_time).mean()
                     elif aggregation is 'sum':
                         df_out = df_idx.resample(resample_time).sum()
+                    elif aggregation is 'max':
+                        df_out = df_idx.resample(resample_time).max()
+                    elif aggregation is 'min':
+                        df_out = df_idx.resample(resample_time).min()
                     else:
                         raise NameError('aggregation or resampling method not valid')
 
