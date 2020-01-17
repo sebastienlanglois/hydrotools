@@ -1,0 +1,19 @@
+name: hydrotools
+channels:
+  - conda-forge
+dependencies:
+  - python=3.7
+  - numpy
+  - dask
+  - pandas
+  - utils
+  - matplotlib
+  - rasterio
+  - geopandas
+  - fiona
+  - shapely
+  - pyproj
+  - pip
+  - pip:
+    - git+https://github.com/xgcm/xgcm.git
+    - git+https://github.com/pydata/utils.git
