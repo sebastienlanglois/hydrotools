@@ -3,7 +3,7 @@ from rasterio import features
 from affine import Affine
 import pandas as pd
 import xarray as xr
-
+import os
 
 def transform_from_latlon(lat, lon):
     """ input 1D array of lat / lon and output an Affine transformation
