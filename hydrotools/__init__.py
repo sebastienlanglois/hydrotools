@@ -5,6 +5,7 @@ import pandas as pd
 import xarray as xr
 import os
 import geopandas as gpd
+import s3fs
 
 
 def transform_from_latlon(lat, lon):
@@ -31,22 +32,42 @@ def rasterize(shapes, coords, latitude='latitude', longitude='longitude',
 
 
 def files_to_gdf(url,
-                 epsg=4326):
+                 epsg=4326,
+                 client_kwargs=None):
     lst_shp = []
 
     # if file
-    if url.endswith(('.shp', '.json', 'geojson')):
-        lst_shp = [url]
+    if url.startswith(('s3://')):
+        s3 = s3fs.S3FileSystem(client_kwargs=client_kwargs,
+                               anon=True)  # public read
+        if url.endswith(('.shp', '.json', 'geojson')):
+            lst_shp = [url]
+            gdf = pd.concat([gpd.GeoDataFrame.from_file(s3.open(file), encoding='latin-1')
+                             for file in lst_shp])
+        else:
+            try:
+                lst_shp = ['s3://' + f for f in s3.find(url)
+                           if f.endswith(('.shp', '.json', 'geojson'))]
+                gdf = pd.concat([gpd.GeoDataFrame.from_file(s3.open(file), encoding='latin-1')
+                                 for file in lst_shp])
+            except:
+                raise NameError('folder not found in the cloud or file extension not supported')
+
     # if directory
     else:
-        for dirpath, dirnames, filenames in os.walk(url):
-            for filename in [f for f in filenames
-                             if f.endswith(('.shp', '.json', 'geojson'))]:
-                lst_shp.append(os.path.join(dirpath, filename))
-
+        if url.endswith(('.shp', '.json', 'geojson')):
+            lst_shp = [url]
+            gdf = pd.concat([gpd.GeoDataFrame.from_file(file, encoding='latin-1')
+                             for file in lst_shp])
+        else:
+            for dirpath, dirnames, filenames in os.walk(url):
+                for filename in [f for f in filenames
+                                 if f.endswith(('.shp', '.json', 'geojson'))]:
+                    lst_shp.append(os.path.join(dirpath, filename))
+            gdf = pd.concat([gpd.GeoDataFrame.from_file(file, encoding='latin-1')
+                             for file in lst_shp])
     # create geopandas from files
-    gdf = pd.concat([gpd.GeoDataFrame.from_file(file, encoding='latin-1')
-                     for file in lst_shp])
+
     gdf = gdf.reset_index().drop(columns=['index'])
 
     # Set initial epsg
