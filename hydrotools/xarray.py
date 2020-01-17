@@ -1,11 +1,9 @@
-import utils as xr
-import geopandas as gpd
-import fsspec
+import hydrotools as xr
 import numpy as np
 from rasterio import features
 from affine import Affine
 import pandas as pd
-import hvplot.pandas
+import xarray as xr
 
 
 def transform_from_latlon(lat, lon):
@@ -39,15 +37,14 @@ def clip_polygon_to_dataframe(dataset,
                               resample_time=None,
                               from_tz='UTC',
                               to_tz='UTC',
-                              latlng_names=['latitude',
-                                            'longitude']
+                              latlng_names=['latitude', 'longitude']
                               ):
     list_df = []
 
     if not geodataframe.empty:
         if geodf_index_column in geodataframe.columns:
             # make sure all values are strings
-            gdf.loc[:, geodf_index_column] = geodataframe[geodf_index_column].astype(str)
+            geodataframe.loc[:, geodf_index_column] = geodataframe[geodf_index_column].astype(str)
 
             # Iterate on each polygon
             for idx, row in geodataframe.iterrows():
@@ -57,7 +54,7 @@ def clip_polygon_to_dataframe(dataset,
                 name = row[geodf_index_column]
                 print(name)
                 # Rasterize polygon to DataArray format
-                mask = rasterize([row.geometry], ds.coords,
+                mask = rasterize([row.geometry], dataset.coords,
                                  latitude=latlng_names[0],
                                  longitude=latlng_names[1])
 
@@ -79,10 +76,10 @@ def clip_polygon_to_dataframe(dataset,
 
                 # Clip DataArray to keep only the polygon mask
                 if use_centroid:
-                    ds_clip = ds.sel(latitude=slice(id_lat[0], id_lat[-1]),
+                    ds_clip = dataset.sel(latitude=slice(id_lat[0], id_lat[-1]),
                                      longitude=slice(id_lon[0], id_lon[-1]))[variable]
                 else:
-                    ds_clip = ds.sel(latitude=slice(id_lat[0], id_lat[-1]),
+                    ds_clip = dataset.sel(latitude=slice(id_lat[0], id_lat[-1]),
                                      longitude=slice(id_lon[0], id_lon[-1]))[variable].where(mask == 1)
 
                 ds_agg = ds_clip.mean(['latitude', 'longitude'])

@@ -6,7 +6,7 @@ dependencies:
   - numpy
   - dask
   - pandas
-  - utils
+  - hydrotools
   - matplotlib
   - rasterio
   - geopandas
@@ -16,4 +16,4 @@ dependencies:
   - pip
   - pip:
     - git+https://github.com/xgcm/xgcm.git
-    - git+https://github.com/pydata/utils.git
+    - git+https://github.com/pydata/hydrotools.git
