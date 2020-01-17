@@ -28,6 +28,30 @@ def rasterize(shapes, coords, latitude='latitude', longitude='longitude',
     return xr.DataArray(raster, coords=spatial_coords, dims=(latitude, longitude))
 
 
+def files_to_gdf(url,
+                 epsg=4326):
+    lst_shp = []
+
+    # if file
+    if url.endswith(('.shp', '.json', 'geojson')):
+        lst_shp = [url]
+    # if directory
+    else:
+        for dirpath, dirnames, filenames in os.walk(url):
+            for filename in [f for f in filenames
+                             if f.endswith(('.shp', '.json', 'geojson'))]:
+                lst_shp.append(os.path.join(dirpath, filename))
+
+    # create geopandas from files
+    gdf = pd.concat([gpd.GeoDataFrame.from_file(file, encoding='latin-1')
+                     for file in lst_shp])
+    gdf = gdf.reset_index().drop(columns=['index'])
+
+    # Set initial epsg
+    gdf.crs = {'init': 'epsg:{}'.format(epsg)}
+    return gdf.to_crs(epsg=4326)
+
+
 def clip_polygon_to_dataframe(dataset,
                               geodataframe,
                               geodf_index_column,
