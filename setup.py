@@ -5,5 +5,5 @@ PYTHON_REQUIRES = ">=3.6"
 setup(name='hydrotools',
       version='1.1',
       python_requires=PYTHON_REQUIRES,
-      packages=['hydrotools'],
+      packages=find_packages(),
       )

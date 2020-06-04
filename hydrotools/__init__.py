@@ -3,6 +3,9 @@ from rasterio import features
 from affine import Affine
 import pandas as pd
 import xarray as xr
+import os
+import geopandas as gpd
+import s3fs
 
 
 def transform_from_latlon(lat, lon):
@@ -26,6 +29,50 @@ def rasterize(shapes, coords, latitude='latitude', longitude='longitude',
                                 dtype=float, **kwargs)
     spatial_coords = {latitude: coords[latitude], longitude: coords[longitude]}
     return xr.DataArray(raster, coords=spatial_coords, dims=(latitude, longitude))
+
+
+def files_to_gdf(url,
+                 epsg=4326,
+                 client_kwargs=None):
+    lst_shp = []
+
+    # if file
+    if url.startswith(('s3://')):
+        s3 = s3fs.S3FileSystem(client_kwargs=client_kwargs,
+                               anon=True)  # public read
+        if url.endswith(('.shp', '.json', 'geojson')):
+            lst_shp = [url]
+            gdf = pd.concat([gpd.GeoDataFrame.from_file(s3.open(file), encoding='latin-1')
+                             for file in lst_shp])
+        else:
+            try:
+                lst_shp = ['s3://' + f for f in s3.find(url)
+                           if f.endswith(('.shp', '.json', 'geojson'))]
+                gdf = pd.concat([gpd.GeoDataFrame.from_file(s3.open(file), encoding='latin-1')
+                                 for file in lst_shp])
+            except:
+                raise NameError('folder not found in the cloud or file extension not supported')
+
+    # if directory
+    else:
+        if url.endswith(('.shp', '.json', 'geojson')):
+            lst_shp = [url]
+            gdf = pd.concat([gpd.GeoDataFrame.from_file(file, encoding='latin-1')
+                             for file in lst_shp])
+        else:
+            for dirpath, dirnames, filenames in os.walk(url):
+                for filename in [f for f in filenames
+                                 if f.endswith(('.shp', '.json', 'geojson'))]:
+                    lst_shp.append(os.path.join(dirpath, filename))
+            gdf = pd.concat([gpd.GeoDataFrame.from_file(file, encoding='latin-1')
+                             for file in lst_shp])
+    # create geopandas from files
+
+    gdf = gdf.reset_index().drop(columns=['index'])
+
+    # Set initial epsg
+    gdf.crs = {'init': 'epsg:{}'.format(epsg)}
+    return gdf.to_crs(epsg=4326)
 
 
 def clip_polygon_to_dataframe(dataset,
@@ -97,6 +144,10 @@ def clip_polygon_to_dataframe(dataset,
                         df_out = df_idx.resample(resample_time).mean()
                     elif aggregation is 'sum':
                         df_out = df_idx.resample(resample_time).sum()
+                    elif aggregation is 'max':
+                        df_out = df_idx.resample(resample_time).max()
+                    elif aggregation is 'min':
+                        df_out = df_idx.resample(resample_time).min()
                     else:
                         raise NameError('aggregation or resampling method not valid')
 
