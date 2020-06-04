@@ -7,7 +7,6 @@ import os
 import geopandas as gpd
 import s3fs
 
-
 def transform_from_latlon(lat, lon):
     """ input 1D array of lat / lon and output an Affine transformation
     """
@@ -130,10 +129,11 @@ def clip_polygon_to_dataframe(dataset,
                                           longitude=slice(id_lon[0], id_lon[-1]))[variable].where(mask == 1)
 
                 if decumulate is True:
-                    ds_clip[variable] = xr.where(ds_clip.time.dt.hour == 1, ds_clip[variable],
-                                                 xr.concat([ds_clip[variable].isel(time=0),
-                                                            ds_clip[variable].diff(dim='time')],
-                                                           dim='time'))
+                    ds_clip = xr.where(ds_clip.time.dt.hour == 1,
+                                       ds_clip,
+                                       xr.concat([ds_clip.isel(time=0),
+                                                  ds_clip.diff(dim='time')],
+                                                 dim='time'))
 
                 ds_agg = ds_clip.mean(['latitude', 'longitude'])
                 df_idx = ds_agg.rename(name).to_dataframe()
