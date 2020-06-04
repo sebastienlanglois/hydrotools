@@ -36,7 +36,8 @@ def clip_polygon_to_dataframe(dataset,
                               resample_time=None,
                               from_tz='UTC',
                               to_tz='UTC',
-                              latlng_names=['latitude', 'longitude']
+                              latlng_names=['latitude', 'longitude'],
+                              decumulate=False
                               ):
     list_df = []
 
@@ -76,10 +77,16 @@ def clip_polygon_to_dataframe(dataset,
                 # Clip DataArray to keep only the polygon mask
                 if use_centroid:
                     ds_clip = dataset.sel(latitude=slice(id_lat[0], id_lat[-1]),
-                                     longitude=slice(id_lon[0], id_lon[-1]))[variable]
+                                          longitude=slice(id_lon[0], id_lon[-1]))[variable]
                 else:
                     ds_clip = dataset.sel(latitude=slice(id_lat[0], id_lat[-1]),
-                                     longitude=slice(id_lon[0], id_lon[-1]))[variable].where(mask == 1)
+                                          longitude=slice(id_lon[0], id_lon[-1]))[variable].where(mask == 1)
+
+                if decumulate is True:
+                    ds_clip[variable] = xr.where(ds_clip.time.dt.hour == 1, ds_clip[variable],
+                                                 xr.concat([ds_clip[variable].isel(time=0),
+                                                            ds_clip[variable].diff(dim='time')],
+                                                           dim='time'))
 
                 ds_agg = ds_clip.mean(['latitude', 'longitude'])
                 df_idx = ds_agg.rename(name).to_dataframe()
