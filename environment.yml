@@ -7,8 +7,4 @@ dependencies:
   - dask
   - pandas
   - matplotlib
-  - rasterio
   - geopandas
-  - fiona
-  - shapely
-  - pyproj
